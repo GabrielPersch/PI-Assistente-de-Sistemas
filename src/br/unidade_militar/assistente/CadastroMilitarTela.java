@@ -1,11 +1,13 @@
 package br.unidade_militar.assistente;
 
-import javax.swing.JOptionPane;
-import javax.swing.*;                         
-import java.awt.*;                            
-import java.awt.event.ActionEvent;            
-import java.security.MessageDigest;           
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
+import javax.swing.JOptionPane;
 
 public class CadastroMilitarTela extends javax.swing.JFrame {
 
@@ -149,22 +151,50 @@ public class CadastroMilitarTela extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCancelarActionPerformed
 
     private void btnCadastrarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCadastrarActionPerformed
-       String nome = txtNome.getText().trim();
-            String numeroPraca = txtPraca.getText().trim();
-            String senha = new String(txtSenha.getPassword()).trim();
+       String nome = txtNome.getText();
+    String numeroPracaStr = txtPraca.getText();
+    String senha = new String(txtSenha.getPassword());
 
-            if (nome.isEmpty() || numeroPraca.isEmpty() || senha.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Todos os campos são obrigatórios!");
-                return;
-            }
-            // Simulando o hash da senha
-            String senhaHash = gerarHashSHA256(senha);
-            System.out.println("Militar cadastrado:");
-            System.out.println("Nome: " + nome);
-            System.out.println("Número Praça: " + numeroPraca);
-            System.out.println("Senha (hash): " + senhaHash);
+    if (nome.isEmpty() || numeroPracaStr.isEmpty() || senha.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Preencha todos os campos!");
+        return;
+    }
 
-            JOptionPane.showMessageDialog(this, "Cadastro simulado com sucesso!");
+    try {
+        int numeroPraca = Integer.parseInt(numeroPracaStr);
+
+        // Criptografar senha com SHA-256
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hash = md.digest(senha.getBytes(StandardCharsets.UTF_8));
+        StringBuilder senhaCriptografada = new StringBuilder();
+        for (byte b : hash) {
+            senhaCriptografada.append(String.format("%02x", b));
+        }
+
+        // Inserir no banco
+        Connection conexao = DriverManager.getConnection("jdbc:mysql://localhost:3306/sessao", "root", "Persch12");
+        String sql = "INSERT INTO Militares (Nome, Numero_praca, Senha) VALUES (?, ?, ?)";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        stmt.setString(1, nome);
+        stmt.setInt(2, numeroPraca);
+        stmt.setString(3, senhaCriptografada.toString());
+        stmt.executeUpdate();
+
+        JOptionPane.showMessageDialog(this, "Militar cadastrado com sucesso!");
+        stmt.close();
+        conexao.close();
+
+        // Opcional: limpar campos ou fechar tela
+        dispose();
+        new TabelaTela().setVisible(true);
+
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this, "Número da praça deve ser um número inteiro.");
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Erro ao salvar no banco: " + e.getMessage());
+    } catch (NoSuchAlgorithmException e) {
+        JOptionPane.showMessageDialog(this, "Erro ao criptografar a senha.");
+    }
     }//GEN-LAST:event_btnCadastrarActionPerformed
 
     private String gerarHashSHA256(String senha) {

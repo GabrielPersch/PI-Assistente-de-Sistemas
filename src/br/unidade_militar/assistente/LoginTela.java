@@ -1,5 +1,9 @@
-
 package br.unidade_militar.assistente;
+
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import javax.swing.JOptionPane;
 
 public class LoginTela extends javax.swing.JFrame {
 
@@ -141,8 +145,46 @@ public class LoginTela extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCadastrarActionPerformed
 
     private void btnEntrarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnEntrarActionPerformed
-        new TabelaTela().setVisible(true);
-        dispose();
+        String nome = txtusuario.getText();
+    String senha = txtsenha.getText();
+
+    try {
+        // Gerar hash da senha
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = md.digest(senha.getBytes(StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        String senhaHash = sb.toString();
+
+        // Conexão com banco de dados
+        Connection conexao = DriverManager.getConnection("jdbc:mysql://localhost:3306/sessao", "root", "Persch12");
+
+        // Consulta SQL
+        String sql = "SELECT * FROM Militares WHERE Nome = ? AND Senha = ?";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        stmt.setString(1, nome);
+        stmt.setString(2, senhaHash);
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+            // Login bem-sucedido
+            JOptionPane.showMessageDialog(this, "Bem-vindo de volta à Infranet!");
+            new TabelaTela().setVisible(true); // Abre a tela com a tabela de visitas
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "Usuário ou senha incorretos.");
+        }
+
+        rs.close();
+        stmt.close();
+        conexao.close();
+
+    } catch (Exception e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Erro ao tentar fazer login.");
+     }
     }//GEN-LAST:event_btnEntrarActionPerformed
 
     

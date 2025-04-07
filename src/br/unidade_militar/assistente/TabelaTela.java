@@ -1,19 +1,21 @@
 package br.unidade_militar.assistente;
 
-import javax.swing.table.DefaultTableModel;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import javax.swing.JOptionPane;
-import java.sql.Date;
+import javax.swing.table.DefaultTableModel;
 
 public class TabelaTela extends javax.swing.JFrame {
 
     
     public TabelaTela() {
         initComponents();
+        carregarVisitasNaTabela();
     }
 
     
@@ -131,34 +133,33 @@ public class TabelaTela extends javax.swing.JFrame {
 
     private void carregarVisitasNaTabela() {
     DefaultTableModel modelo = (DefaultTableModel) vTable.getModel();
-    modelo.setRowCount(0); 
+    modelo.setRowCount(0); // Limpar linhas existentes
 
     try {
-        Connection conexao = DriverManager.getConnection("jdbc:mysql://localhost:3306/sessaoinformatica", "root", "Persch12");
-        String sql = "SELECT v.Id_visita, v.Tipo_problema, v.Data, m.Nome AS Militar, i.Localidade AS Instalacao " +
-                     "FROM Visitas v " +
-                     "JOIN Militares m ON v.Id_usuario_responsavel = m.Id_usuario " +
-                     "JOIN Instalacao i ON v.Id_Instalacao_visitada = i.Id_instalacao";
-
-        PreparedStatement ps = conexao.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery();
+        Connection conexao = DriverManager.getConnection("jdbc:mysql://localhost:3306/sessao", "root", "Persch12");
+        String sql = "SELECT * FROM Visitas";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
 
         while (rs.next()) {
             int id = rs.getInt("Id_visita");
-            String problema = rs.getString("Tipo_problema");
-            Date data = rs.getDate("Data");
-            String militar = rs.getString("Militar");
-            String instalacao = rs.getString("Instalacao");
+            String problema = rs.getString("Problema");
 
-            modelo.addRow(new Object[]{id, problema, data, militar, instalacao});
+            // Converte a data para o formato "dd-MM-yyyy"
+            Date data = rs.getDate("Data");
+            String dataFormatada = new SimpleDateFormat("dd-MM-yyyy").format(data);
+
+            String militar = rs.getString("Militar");
+            String instalacao = rs.getString("Instalação");
+
+            modelo.addRow(new Object[]{id, problema, dataFormatada, militar, instalacao});
         }
 
         rs.close();
-        ps.close();
+        stmt.close();
         conexao.close();
-
-    } catch (SQLException ex) {
-        JOptionPane.showMessageDialog(this, "Erro ao carregar visitas: " + ex.getMessage());
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Erro ao carregar visitas: " + e.getMessage());
     }
 }
     

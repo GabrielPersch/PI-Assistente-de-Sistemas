@@ -1,5 +1,14 @@
 package br.unidade_militar.assistente;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import javax.swing.JOptionPane;
+
 public class RegistrarTela extends javax.swing.JFrame {
 
     
@@ -156,7 +165,44 @@ public class RegistrarTela extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnRegistrarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRegistrarActionPerformed
-       
+    String problema = txtProblema.getText();
+    String dataTexto = txtData.getText();
+    String militar = txtMilitar.getText();
+    String instalacao = txtLocal.getText();
+
+    // Validação básica
+    if (problema.isEmpty() || dataTexto.isEmpty() || militar.isEmpty() || instalacao.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Todos os campos devem ser preenchidos!");
+        return;
+    }
+
+    try {
+        // Converter data de String para java.sql.Date
+        SimpleDateFormat formato = new SimpleDateFormat("dd-MM-yyyy");
+        java.util.Date dataUtil = formato.parse(dataTexto);
+        java.sql.Date dataSql = new java.sql.Date(dataUtil.getTime());
+
+        // Conexão e inserção no banco
+        Connection conexao = DriverManager.getConnection("jdbc:mysql://localhost:3306/sessao", "root", "Persch12");
+        String sql = "INSERT INTO Visitas (Problema, Data, Militar, Instalação) VALUES (?, ?, ?, ?)";
+        PreparedStatement stmt = conexao.prepareStatement(sql);
+        stmt.setString(1, problema);
+        stmt.setDate(2, dataSql);
+        stmt.setString(3, militar);
+        stmt.setString(4, instalacao);
+        stmt.executeUpdate();
+
+        JOptionPane.showMessageDialog(this, "Visita registrada com sucesso!");
+        stmt.close();
+        conexao.close();
+        dispose();
+        new TabelaTela().setVisible(true);
+
+    } catch (ParseException e) {
+        JOptionPane.showMessageDialog(this, "Data inválida! Use o formato dd-MM-yyyy.");
+    } catch (SQLException e) {
+        JOptionPane.showMessageDialog(this, "Erro ao registrar visita: " + e.getMessage());
+    }
     }//GEN-LAST:event_btnRegistrarActionPerformed
 
     private void btnCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCancelarActionPerformed
